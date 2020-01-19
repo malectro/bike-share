@@ -21,7 +21,8 @@ async function main() {
   const ctx = canvas.getContext('2d');
 
   ctx.lineCap = 'round';
-  ctx.strokeStyle = 'rgba(255, 210, 210, 0.1)';
+  ctx.strokeStyle = 'rgba(255, 210, 210, 1)';
+  ctx.fillStyle = 'rgba(210, 210, 255, 1)';
 
   const sfBounds = [
     [-122.5682345,37.8013377],
@@ -109,10 +110,15 @@ async function main() {
       ),
       */
     //i => I.take(i, 1000),
-    i => I.buffer(i, 2),
+    i => I.buffer(i, 20),
     I.animate,
     i => I.map(i, group => {
       //console.log('group', group);
+      
+      ctx.save();
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.01)';
+      ctx.fillRect(0, 0, 100000, 100000);
+      ctx.restore();
 
       for (const member of group) {
         /*
@@ -150,12 +156,20 @@ async function main() {
         );
         ctx.lineTo(end.x * canvas.width, end.y * canvas.height);
         */
+        ctx.arc(start[0], start[1], 2, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.beginPath();
         ctx.moveTo(
           start[0],
           start[1],
         );
         ctx.lineTo(end[0], end[1]);
         ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(end[0], end[1], 2, 0, 2 * Math.PI);
+        ctx.fill();
       }
     }),
   );
