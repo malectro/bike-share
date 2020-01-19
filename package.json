@@ -24,6 +24,7 @@
     "typescript": "^3.7.5"
   },
   "dependencies": {
+    "d3-geo": "^1.11.9",
     "leaflet": "^1.6.0"
   },
   "browserslist": [

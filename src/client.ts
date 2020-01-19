@@ -1,11 +1,15 @@
 import * as I from './utils/async-iterator';
 import * as P from './utils/point';
 import {Rect} from './utils/rect';
+import * as d3Geo from 'd3-geo';
 
 async function main() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
   const canvas = createElement(document, 'canvas', {
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width,
+    height,
   });
 
   Object.assign(canvas.style, {
@@ -19,15 +23,60 @@ async function main() {
   ctx.lineCap = 'round';
   ctx.strokeStyle = 'rgba(255, 210, 210, 0.1)';
 
+  const sfBounds = [
+    [-122.5682345,37.8013377],
+    [-122.4041262,37.813544],
+    [-122.3951998,37.694922],
+    [-122.5483218,37.705652],
+  ];
+  const sfCenter = [-122.4527064, 37.7633836];
+
   const maxMin = [-121.8679663539, 37.8802224459, -122.4761036038, 37.3184498];
   const min = {x: maxMin[2], y: maxMin[3]};
   const max = {x: maxMin[0], y: maxMin[1]};
   const delta = P.subtract(P.copy(max), min);
-  const padding = P.scale(P.copy(delta), 0.2);
+
+  const padding = 20;
+
+  const projection = d3Geo.geoTransverseMercator()
+    .rotate([-sfCenter[0] + 30 / 60, -sfCenter[1] - 50 / 60])
+    //.center(sfCenter)
+    //.translate([Math.floor(width / 2), Math.floor(height / 2)])
+    //.scale(60000)
+  /*
+    .center([min.x + delta.x / 2, min.y + delta.y / 2])
+    .translate([Math.floor(width / 2), Math.floor(height / 2)])
+    .scale(200)
+    .clipExtent([[padding, padding], [canvas.width - padding, canvas.height - padding]])
+    */
+    //.rotate([74 + 30 / 60, -38 - 50 / 60])
+    .fitExtent([[padding, padding], [canvas.width - padding, canvas.height - padding]],
+      {
+        type: 'MultiPoint',
+        coordinates: sfBounds,
+        /*
+        coordinates: [
+          [min.x, min.y],
+          [max.x, max.y],
+        ],
+        */
+      }
+    )
+
+  console.log('center', projection.center());
+  console.log('translate', projection.translate());
+  console.log('scale', projection.scale());
+  console.log('rotate', projection.rotate());
+
+  const maxDelta = Math.max(delta.x, delta.y);
+  //const padding = P.scale(P.point(maxDelta, maxDelta), 0.2);
 
   const bounds = Rect.fromBounds(
+    min, max,
+    /*
     P.subtract(P.copy(min), padding),
     P.add(P.copy(max), padding),
+    */
   );
 
   console.log('bounds', bounds);
@@ -59,13 +108,14 @@ async function main() {
         [-Infinity, -Infinity, Infinity, Infinity],
       ),
       */
-    i => I.take(i, 6000),
+    //i => I.take(i, 1000),
     i => I.buffer(i, 2),
     I.animate,
     i => I.map(i, group => {
       //console.log('group', group);
 
       for (const member of group) {
+        /*
         const start = P.point(
           member.start_station_longitude,
           member.start_station_latitude,
@@ -74,15 +124,37 @@ async function main() {
           member.end_station_longitude,
           member.end_station_latitude,
         );
+
+        console.log('hio', projection([start.y, start.x]));
+
         bounds.project(start);
         bounds.project(end);
+        */
+
+        const start = projection([
+          parseFloat(member.start_station_longitude),
+          parseFloat(member.start_station_latitude),
+        ]);
+        const end = projection([
+          parseFloat(member.end_station_longitude),
+          parseFloat(member.end_station_latitude),
+        ]);
+
+        //console.log('hi', member, start, end);
 
         ctx.beginPath();
+        /*
         ctx.moveTo(
           start.x * canvas.width,
           start.y * canvas.height,
         );
         ctx.lineTo(end.x * canvas.width, end.y * canvas.height);
+        */
+        ctx.moveTo(
+          start[0],
+          start[1],
+        );
+        ctx.lineTo(end[0], end[1]);
         ctx.stroke();
       }
     }),
