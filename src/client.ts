@@ -4,12 +4,13 @@ import {Rect} from './utils/rect';
 import * as d3Geo from 'd3-geo';
 
 async function main() {
+  const ratio = window.devicePixelRatio;
   const width = window.innerWidth;
   const height = window.innerHeight;
 
   const canvas = createElement(document, 'canvas', {
-    width,
-    height,
+    width: width * ratio,
+    height: height * ratio,
   });
 
   Object.assign(canvas.style, {
@@ -20,6 +21,7 @@ async function main() {
 
   const ctx = canvas.getContext('2d');
 
+  //ctx.scale(ratio, ratio);
   ctx.lineCap = 'round';
   ctx.strokeStyle = 'rgba(255, 210, 210, 1)';
   ctx.fillStyle = 'rgba(210, 210, 255, 1)';
