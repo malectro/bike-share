@@ -71,6 +71,49 @@ export async function* take<T>(
   }
 }
 
+export async function* filter<T>(
+  iterable: AsyncIterableIterator<T>,
+  test: (item: T) => unknown,
+): AsyncIterableIterator<T> {
+  for await (const item of iterable) {
+    if (test(item)) {
+      yield item;
+    }
+  }
+}
+
+export async function* seak<T>(
+  iterable: AsyncIterableIterator<T>,
+  test: (item: T) => unknown,
+): AsyncIterableIterator<T> {
+  let found = false;
+  for await (const item of iterable) {
+    if (found) {
+      yield item;
+    } else if (test(item)) {
+      yield item;
+      found = true;
+    }
+  }
+}
+
+export async function* seak2<T>(
+  iterable: AsyncIterableIterator<T>,
+  test: (item: T) => unknown,
+): AsyncIterableIterator<T> {
+  let done;
+  do {
+    const promise = iterable.next()
+    const step = await promise;
+    done = step.done;
+    if (test(step.value)) {
+      yield step.value;
+      break;
+    }
+  } while (!done)
+  yield *iterable;
+}
+
 export async function* map<T, R>(
   iterable: AsyncIterableIterator<T>,
   mapper: (item: T) => R,

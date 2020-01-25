@@ -3,6 +3,15 @@ import * as P from './utils/point';
 import {Rect} from './utils/rect';
 import * as d3Geo from 'd3-geo';
 
+const colors = {
+  stationBikeTrip: 'rgba(255, 210, 210, 1)',
+  ebikeTrip: 'rgb(255, 210, 255)',
+  station: 'rgba(210, 210, 255, 1)',
+  ebikeStop: 'rgb(210, 255, 210)',
+  background: 'black',
+  text: 'white',
+};
+
 async function main() {
   const ratio = window.devicePixelRatio;
   const width = window.innerWidth;
@@ -14,7 +23,7 @@ async function main() {
   });
 
   Object.assign(canvas.style, {
-    background: 'black',
+    background: colors.background,
   });
 
   document.body.appendChild(canvas);
@@ -66,10 +75,12 @@ async function main() {
       }
     )
 
+    /*
   console.log('center', projection.center());
   console.log('translate', projection.translate());
   console.log('scale', projection.scale());
   console.log('rotate', projection.rotate());
+  */
 
   const maxDelta = Math.max(delta.x, delta.y);
   //const padding = P.scale(P.point(maxDelta, maxDelta), 0.2);
@@ -84,7 +95,7 @@ async function main() {
 
   console.log('bounds', bounds);
 
-  const response = await fetch('/201911-baywheels-tripdata.csv');
+  const response = await fetch('/201912-baywheels-tripdata.csv');
 
   const decoder = new TextDecoder();
 
@@ -93,6 +104,8 @@ async function main() {
     i => I.map(i, array => decoder.decode(array)),
     breakUpLines,
     parseCsv,
+    //i => I.seak(i, item => item.start_time > '2019-12-20'),
+    //i => I.filter(i, item => !item.start_station_id || !item.end_station_id),
     /*
     i => I.take(i, 1000),
     i =>
@@ -112,7 +125,7 @@ async function main() {
       ),
       */
     //i => I.take(i, 1000),
-    i => I.buffer(i, 20),
+    i => I.buffer(i, 10),
     I.animate,
     i => I.map(i, group => {
       //console.log('group', group);
@@ -139,6 +152,10 @@ async function main() {
         bounds.project(end);
         */
 
+        const startsOnStation = member.start_station_id;
+        const endsOnStation = member.end_station_id;
+        const isEbike = !startsOnStation || !endsOnStation;
+
         const start = projection([
           parseFloat(member.start_station_longitude),
           parseFloat(member.start_station_latitude),
@@ -158,6 +175,7 @@ async function main() {
         );
         ctx.lineTo(end.x * canvas.width, end.y * canvas.height);
         */
+        ctx.fillStyle = startsOnStation ? colors.station : colors.ebikeStop;
         ctx.arc(start[0], start[1], 2, 0, 2 * Math.PI);
         ctx.fill();
 
@@ -167,11 +185,20 @@ async function main() {
           start[1],
         );
         ctx.lineTo(end[0], end[1]);
+        ctx.strokeStyle = isEbike ? colors.ebikeTrip : colors.stationBikeTrip;
         ctx.stroke();
 
         ctx.beginPath();
         ctx.arc(end[0], end[1], 2, 0, 2 * Math.PI);
+        ctx.fillStyle = endsOnStation ? colors.station : colors.ebikeStop;
         ctx.fill();
+
+        ctx.fillStyle = colors.background;
+        ctx.fillRect(0, 0, 600, 200);
+
+        ctx.fillStyle = colors.text;
+        ctx.font = '28px sans-serif';
+        ctx.fillText(member.start_time, 10, 28 + 10);
       }
     }),
   );
