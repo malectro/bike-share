@@ -95,7 +95,7 @@ async function main() {
 
   console.log('bounds', bounds);
 
-  const response = await fetch('/201912-baywheels-tripdata.csv');
+  const response = await fetch('201912-baywheels-tripdata.csv');
 
   const decoder = new TextDecoder();
 
