@@ -24,6 +24,8 @@ async function main() {
 
   Object.assign(canvas.style, {
     background: colors.background,
+    width: '100vw',
+    height: '100vh',
   });
 
   document.body.appendChild(canvas);
