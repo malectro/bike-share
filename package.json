@@ -26,7 +26,8 @@
   },
   "dependencies": {
     "d3-geo": "^1.11.9",
-    "leaflet": "^1.6.0"
+    "leaflet": "^1.6.0",
+    "parcel": "^2.0.1"
   },
   "browserslist": [
     "last 2 Chrome versions",
