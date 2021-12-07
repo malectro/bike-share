@@ -38,10 +38,10 @@ async function main() {
   ctx.fillStyle = 'rgba(210, 210, 255, 1)';
 
   const sfBounds = [
-    [-122.5682345,37.8013377],
-    [-122.4041262,37.813544],
-    [-122.3951998,37.694922],
-    [-122.5483218,37.705652],
+    [-122.5682345, 37.8013377],
+    [-122.4041262, 37.813544],
+    [-122.3951998, 37.694922],
+    [-122.5483218, 37.705652],
   ];
   const sfCenter = [-122.4527064, 37.7633836];
 
@@ -52,19 +52,24 @@ async function main() {
 
   const padding = 20;
 
-  const projection = d3Geo.geoTransverseMercator()
+  const projection = d3Geo
+    .geoTransverseMercator()
     .rotate([-sfCenter[0] + 30 / 60, -sfCenter[1] - 50 / 60])
     //.center(sfCenter)
     //.translate([Math.floor(width / 2), Math.floor(height / 2)])
     //.scale(60000)
-  /*
+    /*
     .center([min.x + delta.x / 2, min.y + delta.y / 2])
     .translate([Math.floor(width / 2), Math.floor(height / 2)])
     .scale(200)
     .clipExtent([[padding, padding], [canvas.width - padding, canvas.height - padding]])
     */
     //.rotate([74 + 30 / 60, -38 - 50 / 60])
-    .fitExtent([[padding, padding], [canvas.width - padding, canvas.height - padding]],
+    .fitExtent(
+      [
+        [padding, padding],
+        [canvas.width - padding, canvas.height - padding],
+      ],
       {
         type: 'MultiPoint',
         coordinates: sfBounds,
@@ -74,10 +79,10 @@ async function main() {
           [max.x, max.y],
         ],
         */
-      }
-    )
+      },
+    );
 
-    /*
+  /*
   console.log('center', projection.center());
   console.log('translate', projection.translate());
   console.log('scale', projection.scale());
@@ -88,7 +93,8 @@ async function main() {
   //const padding = P.scale(P.point(maxDelta, maxDelta), 0.2);
 
   const bounds = Rect.fromBounds(
-    min, max,
+    min,
+    max,
     /*
     P.subtract(P.copy(min), padding),
     P.add(P.copy(max), padding),
@@ -97,13 +103,15 @@ async function main() {
 
   console.log('bounds', bounds);
 
-  const response = await fetch('201912-baywheels-tripdata.csv');
+  const response = await fetch('202110-baywheels-tripdata.sorted.csv');
 
   const decoder = new TextDecoder();
 
+  let first = true;
+  const rideTypes = new Set();
   const result = await I.flush(
     I.fromStream(response.body),
-    i => I.map(i, array => decoder.decode(array)),
+    (i) => I.map(i, (array) => decoder.decode(array)),
     breakUpLines,
     parseCsv,
     //i => I.seak(i, item => item.start_time > '2019-12-20'),
@@ -127,18 +135,17 @@ async function main() {
       ),
       */
     //i => I.take(i, 1000),
-    i => I.buffer(i, 10),
+    (i) => I.buffer(i, 10),
     I.animate,
-    i => I.map(i, group => {
-      //console.log('group', group);
-      
-      ctx.save();
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.01)';
-      ctx.fillRect(0, 0, 100000, 100000);
-      ctx.restore();
+    (i) =>
+      I.map(i, (group) => {
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.01)';
+        ctx.fillRect(0, 0, 100000, 100000);
+        ctx.restore();
 
-      for (const member of group) {
-        /*
+        for (const member of group) {
+          /*
         const start = P.point(
           member.start_station_longitude,
           member.start_station_latitude,
@@ -154,57 +161,62 @@ async function main() {
         bounds.project(end);
         */
 
-        const startsOnStation = member.start_station_id;
-        const endsOnStation = member.end_station_id;
-        const isEbike = !startsOnStation || !endsOnStation;
+       rideTypes.add(member.rideable_type);
 
-        const start = projection([
-          parseFloat(member.start_station_longitude),
-          parseFloat(member.start_station_latitude),
-        ]);
-        const end = projection([
-          parseFloat(member.end_station_longitude),
-          parseFloat(member.end_station_latitude),
-        ]);
+          const startsOnStation = member.start_station_id;
+          const endsOnStation = member.end_station_id;
+          const isDockless = !startsOnStation || !endsOnStation;
+          const isEbike = member.rideable_type !== 'classic_bike';
 
-        //console.log('hi', member, start, end);
+          const start = projection([
+            parseFloat(member.start_station_longitude || member.start_lng),
+            parseFloat(member.start_station_latitude || member.start_lat),
+          ]);
+          const end = projection([
+            parseFloat(member.end_station_longitude || member.end_lng),
+            parseFloat(member.end_station_latitude || member.end_lat),
+          ]);
 
-        ctx.beginPath();
-        /*
+          //console.log('hi', member, start, end);
+
+          ctx.beginPath();
+          /*
         ctx.moveTo(
           start.x * canvas.width,
           start.y * canvas.height,
         );
         ctx.lineTo(end.x * canvas.width, end.y * canvas.height);
         */
-        ctx.fillStyle = startsOnStation ? colors.station : colors.ebikeStop;
-        ctx.arc(start[0], start[1], 2, 0, 2 * Math.PI);
-        ctx.fill();
+          ctx.fillStyle = startsOnStation ? colors.station : colors.ebikeStop;
+          ctx.arc(start[0], start[1], 2, 0, 2 * Math.PI);
+          ctx.fill();
 
-        ctx.beginPath();
-        ctx.moveTo(
-          start[0],
-          start[1],
-        );
-        ctx.lineTo(end[0], end[1]);
-        ctx.strokeStyle = isEbike ? colors.ebikeTrip : colors.stationBikeTrip;
-        ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(start[0], start[1]);
+          ctx.lineTo(end[0], end[1]);
+          ctx.strokeStyle = isEbike ? colors.ebikeTrip : colors.stationBikeTrip;
+          ctx.stroke();
 
-        ctx.beginPath();
-        ctx.arc(end[0], end[1], 2, 0, 2 * Math.PI);
-        ctx.fillStyle = endsOnStation ? colors.station : colors.ebikeStop;
-        ctx.fill();
+          ctx.beginPath();
+          ctx.arc(end[0], end[1], 2, 0, 2 * Math.PI);
+          ctx.fillStyle = endsOnStation ? colors.station : colors.ebikeStop;
+          ctx.fill();
 
-        ctx.fillStyle = colors.background;
-        ctx.fillRect(0, 0, 600, 200);
+          ctx.fillStyle = colors.background;
+          ctx.fillRect(0, 0, 600, 200);
 
-        ctx.fillStyle = colors.text;
-        ctx.font = '28px sans-serif';
-        ctx.fillText(member.start_time, 10, 28 + 10);
-      }
-    }),
+          ctx.fillStyle = colors.text;
+          ctx.font = '28px sans-serif';
+          ctx.fillText(member.start_time || member.started_at, 10, 28 + 10);
+          if (first) {
+            first = false;
+            console.log('example', member);
+          }
+        }
+      }),
   );
 
+  console.log('ride types', rideTypes);
   console.log('result', result);
 
   /*
